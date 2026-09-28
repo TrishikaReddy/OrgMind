@@ -9,7 +9,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# Allow the React frontend to access the backend
+# Allow React frontend
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173"],
@@ -17,6 +17,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 class Question(BaseModel):
     question: str
@@ -26,6 +27,14 @@ class Question(BaseModel):
 def home():
     return {
         "message": "OrgMind Backend Running 🚀"
+    }
+
+
+@app.get("/health")
+def health():
+    return {
+        "status": "ok",
+        "service": "OrgMind Backend"
     }
 
 
