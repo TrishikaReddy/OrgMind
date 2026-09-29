@@ -8,9 +8,7 @@ function createId() {
     return crypto.randomUUID();
   }
 
-  return `${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
+  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 function getTime() {
@@ -69,7 +67,6 @@ function App() {
   });
 
   const [activeView, setActiveView] = useState("chat");
-
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -77,9 +74,7 @@ function App() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
   const [conflict, setConflict] = useState(null);
-
   const [sidebarOpen, setSidebarOpen] = useState(false);
-
   const [toast, setToast] = useState(null);
 
   const messagesEndRef = useRef(null);
@@ -97,10 +92,7 @@ function App() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(
-        "orgmind-chats",
-        JSON.stringify(chats)
-      );
+      localStorage.setItem("orgmind-chats", JSON.stringify(chats));
     } catch (error) {
       console.error("Could not save chats:", error);
     }
@@ -109,10 +101,7 @@ function App() {
   useEffect(() => {
     try {
       if (activeChatId) {
-        localStorage.setItem(
-          "orgmind-active-chat",
-          activeChatId
-        );
+        localStorage.setItem("orgmind-active-chat", activeChatId);
       } else {
         localStorage.removeItem("orgmind-active-chat");
       }
@@ -259,8 +248,7 @@ function App() {
     ];
 
     const extension =
-      "." +
-      file.name.split(".").pop().toLowerCase();
+      "." + file.name.split(".").pop().toLowerCase();
 
     if (!allowedExtensions.includes(extension)) {
       setUploadStatus(
@@ -282,7 +270,18 @@ function App() {
     formData.append("file", file);
 
     try {
+      setLoading(true);
       setUploadStatus(`Uploading ${file.name}...`);
+
+      console.log("=================================");
+      console.log("ORG MIND FILE UPLOAD");
+      console.log("File:", file.name);
+      console.log("Size:", file.size);
+      console.log(
+        "URL:",
+        `${BACKEND_URL}/upload`
+      );
+      console.log("=================================");
 
       const response = await axios.post(
         `${BACKEND_URL}/upload`,
@@ -294,15 +293,24 @@ function App() {
         }
       );
 
-      const filename =
-        response.data?.filename || file.name;
+      console.log(
+        "Upload response:",
+        response.data
+      );
 
-      setUploadedFiles((previous) => [
-        ...previous.filter(
+      const filename =
+        response.data?.filename ||
+        response.data?.file_name ||
+        response.data?.name ||
+        file.name;
+
+      setUploadedFiles((previous) => {
+        const filtered = previous.filter(
           (name) => name !== filename
-        ),
-        filename,
-      ]);
+        );
+
+        return [...filtered, filename];
+      });
 
       setUploadStatus(
         `${filename} indexed successfully`
@@ -316,22 +324,71 @@ function App() {
         fileInputRef.current.value = "";
       }
     } catch (error) {
-      console.error("Upload error:", error);
+      console.error(
+        "================================="
+      );
+
+      console.error(
+        "ORG MIND UPLOAD ERROR"
+      );
+
+      console.error(error);
+
+      console.error(
+        "Response:",
+        error.response?.data
+      );
+
+      console.error(
+        "Status:",
+        error.response?.status
+      );
+
+      console.error(
+        "================================="
+      );
 
       const message =
         error.response?.data?.detail ||
+        error.response?.data?.message ||
+        error.message ||
         "Failed to upload document.";
 
-      setUploadStatus(message);
-      showToast("Document upload failed", "error");
+      setUploadStatus(
+        `Upload failed: ${message}`
+      );
+
+      showToast(
+        "Document upload failed",
+        "error"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleFileChange = (event) => {
     const file = event.target.files?.[0];
 
-    if (file) {
-      handleUpload(file);
+    if (!file) {
+      return;
+    }
+
+    console.log(
+      "Selected file:",
+      file.name
+    );
+
+    handleUpload(file);
+  };
+
+  const openFilePicker = () => {
+    if (loading) {
+      return;
+    }
+
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
     }
   };
 
@@ -368,6 +425,8 @@ function App() {
 
   const handleKeepPrevious = () => {
     setConflict(null);
+
+    if (!activeChatId) return;
 
     addMessage(activeChatId, {
       id: createId(),
@@ -595,7 +654,10 @@ function App() {
       await navigator.clipboard.writeText(text);
       showToast("Message copied");
     } catch {
-      showToast("Could not copy message", "error");
+      showToast(
+        "Could not copy message",
+        "error"
+      );
     }
   };
 
@@ -609,23 +671,18 @@ function App() {
   };
 
   // =========================================================
-  // RENDER CHAT
+  // CHAT
   // =========================================================
 
   const renderChat = () => (
     <section className="chat-page">
 
-      {/* UPLOAD HERO */}
-
       <div className="upload-card">
 
         <div
           className="upload-drop-zone"
-          onClick={() =>
-            fileInputRef.current?.click()
-          }
+          onClick={openFilePicker}
         >
-
           <div className="upload-cloud">
             ☁
           </div>
@@ -647,18 +704,19 @@ function App() {
           <small>
             Supports PDF, DOCX, TXT • Max file size: 10MB
           </small>
-
         </div>
 
       </div>
 
-      {/* UPLOAD STATUS */}
-
       {uploadStatus && (
         <div
           className={`upload-status ${
-            uploadStatus.toLowerCase().includes("failed") ||
-            uploadStatus.toLowerCase().includes("unsupported")
+            uploadStatus
+              .toLowerCase()
+              .includes("failed") ||
+            uploadStatus
+              .toLowerCase()
+              .includes("unsupported")
               ? "upload-error"
               : ""
           }`}
@@ -666,8 +724,6 @@ function App() {
           ✓ {uploadStatus}
         </div>
       )}
-
-      {/* CHAT */}
 
       <div className="chat-content">
 
@@ -837,6 +893,7 @@ function App() {
 
                 {conflict.explanation && (
                   <div className="conflict-explanation">
+
                     <strong>
                       Why this matters:
                     </strong>
@@ -844,6 +901,7 @@ function App() {
                     <p>
                       {conflict.explanation}
                     </p>
+
                   </div>
                 )}
 
@@ -888,29 +946,18 @@ function App() {
             <div ref={messagesEndRef} />
 
           </div>
+
         )}
 
       </div>
 
-      {/* INPUT */}
-
       <div className="chat-input-section">
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.doc,.docx,.txt"
-          style={{ display: "none" }}
-          onChange={handleFileChange}
-        />
 
         <div className="chat-input-wrapper">
 
           <button
             className="input-icon-button"
-            onClick={() =>
-              fileInputRef.current?.click()
-            }
+            onClick={openFilePicker}
             disabled={loading}
             title="Upload document"
           >
@@ -963,7 +1010,9 @@ function App() {
     <section className="content-page">
 
       <div className="page-heading">
+
         <div>
+
           <span className="eyebrow">
             KNOWLEDGE CENTER
           </span>
@@ -976,17 +1025,35 @@ function App() {
             Upload and manage your organization's
             knowledge.
           </p>
+
         </div>
 
         <button
           className="primary-button"
-          onClick={() =>
-            fileInputRef.current?.click()
-          }
+          onClick={openFilePicker}
+          disabled={loading}
         >
           + Upload Document
         </button>
+
       </div>
+
+      {uploadStatus && (
+        <div
+          className={`upload-status ${
+            uploadStatus
+              .toLowerCase()
+              .includes("failed") ||
+            uploadStatus
+              .toLowerCase()
+              .includes("unsupported")
+              ? "upload-error"
+              : ""
+          }`}
+        >
+          ✓ {uploadStatus}
+        </div>
+      )}
 
       <div className="document-grid">
 
@@ -1009,9 +1076,8 @@ function App() {
 
             <button
               className="primary-button"
-              onClick={() =>
-                fileInputRef.current?.click()
-              }
+              onClick={openFilePicker}
+              disabled={loading}
             >
               Upload Document
             </button>
@@ -1028,9 +1094,13 @@ function App() {
             >
 
               <div className="document-icon">
-                {file.toLowerCase().endsWith(".pdf")
+                {file
+                  .toLowerCase()
+                  .endsWith(".pdf")
                   ? "📕"
-                  : file.toLowerCase().endsWith(".docx")
+                  : file
+                      .toLowerCase()
+                      .endsWith(".docx")
                   ? "📘"
                   : "📄"}
               </div>
@@ -1278,6 +1348,19 @@ function App() {
   return (
     <div className="app-shell">
 
+      {/* =====================================================
+          GLOBAL FILE INPUT
+          IMPORTANT: THIS IS OUTSIDE renderChat()
+          ===================================================== */}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".pdf,.doc,.docx,.txt"
+        style={{ display: "none" }}
+        onChange={handleFileChange}
+      />
+
       {sidebarOpen && (
         <div
           className="sidebar-overlay"
@@ -1289,11 +1372,13 @@ function App() {
 
       {/* =====================================================
           SIDEBAR
-      ===================================================== */}
+          ===================================================== */}
 
       <aside
         className={`app-sidebar ${
-          sidebarOpen ? "sidebar-open" : ""
+          sidebarOpen
+            ? "sidebar-open"
+            : ""
         }`}
       >
 
@@ -1333,8 +1418,6 @@ function App() {
           <span>＋</span>
           New conversation
         </button>
-
-        {/* NAVIGATION */}
 
         <nav className="sidebar-nav">
 
@@ -1398,11 +1481,10 @@ function App() {
 
         <div className="sidebar-divider" />
 
-        {/* UPLOADED DOCUMENTS */}
-
         <div className="sidebar-documents">
 
           <div className="sidebar-section-title">
+
             <span>
               UPLOADED DOCUMENTS
             </span>
@@ -1410,6 +1492,7 @@ function App() {
             <span className="count-badge">
               {uploadedFiles.length}
             </span>
+
           </div>
 
           {uploadedFiles.length === 0 ? (
@@ -1420,8 +1503,10 @@ function App() {
 
           ) : (
 
-            uploadedFiles.slice(-6).reverse().map(
-              (file) => (
+            uploadedFiles
+              .slice(-6)
+              .reverse()
+              .map((file) => (
 
                 <div
                   className="sidebar-document"
@@ -1429,7 +1514,9 @@ function App() {
                 >
 
                   <span className="sidebar-file-icon">
-                    {file.toLowerCase().endsWith(".pdf")
+                    {file
+                      .toLowerCase()
+                      .endsWith(".pdf")
                       ? "📕"
                       : "📄"}
                   </span>
@@ -1448,8 +1535,7 @@ function App() {
 
                 </div>
 
-              )
-            )
+              ))
 
           )}
 
@@ -1458,6 +1544,7 @@ function App() {
         <div className="sidebar-bottom">
 
           <div className="sidebar-tip">
+
             <div>
               ✨
             </div>
@@ -1472,6 +1559,7 @@ function App() {
               OrgMind helps your team
               remember what matters.
             </p>
+
           </div>
 
           <button
@@ -1495,11 +1583,9 @@ function App() {
 
       {/* =====================================================
           MAIN
-      ===================================================== */}
+          ===================================================== */}
 
       <main className="main-content">
-
-        {/* HEADER */}
 
         <header className="app-header">
 
@@ -1557,6 +1643,7 @@ function App() {
               </div>
 
               <div className="user-info">
+
                 <strong>
                   OrgMind User
                 </strong>
@@ -1564,10 +1651,11 @@ function App() {
                 <small>
                   Product Team
                 </small>
+
               </div>
 
               <span>
-               ⌄
+                ⌄
               </span>
 
             </div>
@@ -1575,8 +1663,6 @@ function App() {
           </div>
 
         </header>
-
-        {/* PAGE */}
 
         <div className="page-layout">
 
@@ -1607,6 +1693,7 @@ function App() {
               </div>
 
               <div>
+
                 <h3>
                   OrgMind
                 </h3>
@@ -1614,6 +1701,7 @@ function App() {
                 <p>
                   Your organization remembers.
                 </p>
+
               </div>
 
             </div>
@@ -1661,10 +1749,13 @@ function App() {
             <div className="activity-card">
 
               <div className="activity-heading">
+
                 <span>
                   ◷
                 </span>
+
                 Recent Activity
+
               </div>
 
               {uploadedFiles.length === 0 ? (
@@ -1690,6 +1781,7 @@ function App() {
                       </div>
 
                       <div>
+
                         <strong>
                           Indexed Successfully
                         </strong>
@@ -1697,6 +1789,7 @@ function App() {
                         <span>
                           {file}
                         </span>
+
                       </div>
 
                     </div>
@@ -1773,6 +1866,7 @@ function App() {
               : "toast-success"
           }`}
         >
+
           <span>
             {toast.type === "error"
               ? "❌"
@@ -1782,6 +1876,7 @@ function App() {
           </span>
 
           {toast.message}
+
         </div>
       )}
 
