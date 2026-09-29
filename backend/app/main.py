@@ -1,31 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-<<<<<<< HEAD
 
-=======
->>>>>>> a75db40 (Completed professional frontend UI)
+from app.upload import router as upload_router
+from app.database import init_db
 from app.llm import ask_groq
+from app.memory import save_memory, get_recent_memories
 
-app = FastAPI(
-    title="OrgMind API",
-    version="1.0.0"
-)
+app = FastAPI()
 
-# Allow React frontend
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Register upload routes
+app.include_router(upload_router)
 
-
-class Question(BaseModel):
-    question: str
-
-
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -34,12 +21,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+@app.on_event("startup")
+def startup():
+    init_db()
+
+
 class Question(BaseModel):
     question: str
 
+
 @app.get("/")
 def home():
-<<<<<<< HEAD
     return {
         "message": "OrgMind Backend Running 🚀"
     }
@@ -52,21 +45,18 @@ def health():
         "service": "OrgMind Backend"
     }
 
-=======
-    return {"message": "OrgMind Backend is Running!"}
-
-@app.get("/health")
-def health():
-    return {"status": "healthy"}
->>>>>>> a75db40 (Completed professional frontend UI)
 
 @app.post("/ask")
 def ask(question: Question):
-    reply = ask_groq(question.question)
-<<<<<<< HEAD
+    # Retrieve recent memories
+    memories = get_recent_memories(5)
+
+    # Generate AI response using memory + RAG
+    answer = ask_groq(question.question, memories)
+
+    # Save conversation
+    save_memory(question.question, answer)
+
     return {
-        "answer": reply
+        "answer": answer
     }
-=======
-    return {"answer": reply}
->>>>>>> a75db40 (Completed professional frontend UI)
