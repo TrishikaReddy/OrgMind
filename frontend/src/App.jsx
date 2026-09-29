@@ -1,4 +1,38 @@
+<<<<<<< HEAD
 import { useEffect, useRef, useState } from "react";
+=======
+<<<<<<< HEAD
+import { useState } from "react";
+import axios from "axios";
+
+const API_URL = "http://127.0.0.1:8000";
+
+function App() {
+  const [question, setQuestion] = useState("");
+  const [answer, setAnswer] = useState("");
+  const [uploadStatus, setUploadStatus] = useState("");
+
+  const askAI = async () => {
+    if (!question.trim()) return;
+
+    try {
+      const res = await axios.post(`${API_URL}/ask`, {
+        question,
+      });
+
+      setAnswer(res.data.answer);
+    } catch (err) {
+      console.error(err);
+<<<<<<< HEAD
+      setAnswer("Error connecting to backend.");
+=======
+import {
+  useEffect,
+  useRef,
+  useState,
+} from "react";
+
+>>>>>>> 149ef54 (Completed backend RAG pipeline)
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -302,6 +336,37 @@ function App() {
       );
     } finally {
       setLoading(false);
+<<<<<<< HEAD
+=======
+>>>>>>> a75db40 (Completed professional frontend UI)
+=======
+      setAnswer("❌ Error connecting to backend.");
+    }
+  };
+
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      setUploadStatus("Uploading...");
+
+      const res = await axios.post(
+        `${API_URL}/upload`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setUploadStatus("✅ " + res.data.message);
+    } catch (err) {
+      console.error(err);
+      setUploadStatus("❌ Upload failed");
+>>>>>>> 61a7d1d (Completed backend RAG pipeline)
+>>>>>>> 149ef54 (Completed backend RAG pipeline)
     }
   };
 
@@ -310,6 +375,92 @@ function App() {
   // ================================
 
   return (
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    <div
+      style={{
+        background: "#0f172a",
+        minHeight: "100vh",
+        color: "white",
+        padding: "40px",
+        fontFamily: "Arial",
+      }}
+    >
+      <h1>🧠 OrgMind</h1>
+      <h2>AI Organizational Memory Agent</h2>
+
+      <hr style={{ margin: "25px 0" }} />
+
+      <h3>📄 Upload Document</h3>
+
+      <input
+        type="file"
+        accept=".pdf,.doc,.docx,.txt"
+        onChange={(e) => {
+          if (e.target.files.length > 0) {
+            uploadFile(e.target.files[0]);
+          }
+        }}
+      />
+
+      <p>{uploadStatus}</p>
+
+      <hr style={{ margin: "25px 0" }} />
+
+      <h3>💬 AI Chat</h3>
+
+      <textarea
+        rows="6"
+        placeholder="Ask OrgMind anything..."
+        value={question}
+        onChange={(e) => setQuestion(e.target.value)}
+        style={{
+          width: "100%",
+          maxWidth: "800px",
+          background: "#1e293b",
+          color: "white",
+          border: "1px solid #475569",
+          borderRadius: "8px",
+          padding: "12px",
+          fontSize: "16px",
+        }}
+      />
+
+      <br />
+      <br />
+
+      <button
+        onClick={askAI}
+        style={{
+          background: "#2563eb",
+          color: "white",
+          border: "none",
+          borderRadius: "8px",
+          padding: "12px 24px",
+          cursor: "pointer",
+          fontSize: "16px",
+        }}
+      >
+        Ask AI
+      </button>
+
+      <h3 style={{ marginTop: "30px" }}>Response</h3>
+
+      <div
+        style={{
+          background: "#1e293b",
+          padding: "20px",
+          borderRadius: "8px",
+          minHeight: "100px",
+          maxWidth: "800px",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {answer}
+      </div>
+=======
+>>>>>>> 149ef54 (Completed backend RAG pipeline)
     <div className="app-shell">
 
       {/* MOBILE SIDEBAR OVERLAY */}
