@@ -1,28 +1,4 @@
-<<<<<<< HEAD
-import { useState } from "react";
-import axios from "axios";
-
-function App() {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-
-  const askAI = async () => {
-    try {
-      const res = await axios.post("http://127.0.0.1:8000/ask", {
-        question: question,
-      });
-
-      setAnswer(res.data.answer);
-    } catch (err) {
-      console.error(err);
-      setAnswer("Error connecting to backend.");
-=======
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -33,55 +9,44 @@ import ChatInput from "./components/ChatInput";
 import WelcomeScreen from "./components/WelcomeScreen";
 
 function App() {
+  // ================================
+  // CHAT STATE
+  // ================================
+
   const [chats, setChats] = useState(() => {
     try {
-      const saved =
-        localStorage.getItem("orgmind-chats");
-
-      return saved
-        ? JSON.parse(saved)
-        : [];
+      const saved = localStorage.getItem("orgmind-chats");
+      return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
     }
   });
 
-  const [activeChatId, setActiveChatId] =
-    useState(() => {
-      return (
-        localStorage.getItem(
-          "orgmind-active-chat"
-        ) || null
-      );
-    });
+  const [activeChatId, setActiveChatId] = useState(() => {
+    return localStorage.getItem("orgmind-active-chat") || null;
+  });
 
-  const [question, setQuestion] =
-    useState("");
-
-  const [loading, setLoading] =
-    useState(false);
-
-  const [sidebarOpen, setSidebarOpen] =
-    useState(false);
+  const [question, setQuestion] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const bottomRef = useRef(null);
 
+  // ================================
+  // ACTIVE CHAT
+  // ================================
+
   const activeChat =
-    chats.find(
-      (chat) =>
-        chat.id === activeChatId
-    ) || null;
+    chats.find((chat) => chat.id === activeChatId) || null;
 
-  const messages =
-    activeChat?.messages || [];
+  const messages = activeChat?.messages || [];
 
-  /* ---------------- SAVE CHATS ---------------- */
+  // ================================
+  // SAVE CHATS
+  // ================================
 
   useEffect(() => {
-    localStorage.setItem(
-      "orgmind-chats",
-      JSON.stringify(chats)
-    );
+    localStorage.setItem("orgmind-chats", JSON.stringify(chats));
   }, [chats]);
 
   useEffect(() => {
@@ -91,13 +56,13 @@ function App() {
         activeChatId
       );
     } else {
-      localStorage.removeItem(
-        "orgmind-active-chat"
-      );
+      localStorage.removeItem("orgmind-active-chat");
     }
   }, [activeChatId]);
 
-  /* ---------------- AUTO SCROLL ---------------- */
+  // ================================
+  // AUTO SCROLL
+  // ================================
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
@@ -105,25 +70,34 @@ function App() {
     });
   }, [messages, loading]);
 
-  /* ---------------- TIME ---------------- */
+  // ================================
+  // TIME
+  // ================================
 
-  const currentTime = () =>
-    new Date().toLocaleTimeString([], {
+  const currentTime = () => {
+    return new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
 
-  /* ---------------- TITLE ---------------- */
+  // ================================
+  // CHAT TITLE
+  // ================================
 
   const createChatTitle = (text) => {
     const clean = text.trim();
 
-    return clean.length <= 32
-      ? clean
-      : `${clean.slice(0, 32)}...`;
+    if (clean.length <= 32) {
+      return clean;
+    }
+
+    return `${clean.slice(0, 32)}...`;
   };
 
-  /* ---------------- NEW CHAT ---------------- */
+  // ================================
+  // NEW CHAT
+  // ================================
 
   const newChat = () => {
     const chat = {
@@ -132,17 +106,16 @@ function App() {
       messages: [],
     };
 
-    setChats((prev) => [
-      chat,
-      ...prev,
-    ]);
+    setChats((prev) => [chat, ...prev]);
 
     setActiveChatId(chat.id);
     setQuestion("");
     setSidebarOpen(false);
   };
 
-  /* ---------------- SELECT CHAT ---------------- */
+  // ================================
+  // SELECT CHAT
+  // ================================
 
   const selectChat = (chatId) => {
     setActiveChatId(chatId);
@@ -150,7 +123,9 @@ function App() {
     setSidebarOpen(false);
   };
 
-  /* ---------------- CLEAR CHAT ---------------- */
+  // ================================
+  // CLEAR CURRENT CHAT
+  // ================================
 
   const clearCurrentChat = () => {
     if (!activeChatId) {
@@ -163,8 +138,7 @@ function App() {
         chat.id === activeChatId
           ? {
               ...chat,
-              title:
-                "New conversation",
+              title: "New conversation",
               messages: [],
             }
           : chat
@@ -173,53 +147,44 @@ function App() {
 
     setQuestion("");
 
-    toast.success(
-      "Conversation cleared"
-    );
+    toast.success("Conversation cleared");
   };
 
-  /* ---------------- COPY ---------------- */
+  // ================================
+  // COPY MESSAGE
+  // ================================
 
   const copyMessage = async (text) => {
     try {
-      await navigator.clipboard.writeText(
-        text
-      );
-
+      await navigator.clipboard.writeText(text);
       toast.success("Copied!");
     } catch {
-      toast.error(
-        "Unable to copy message"
-      );
+      toast.error("Unable to copy message");
     }
   };
 
-  /* ---------------- ADD MESSAGE ---------------- */
+  // ================================
+  // ADD MESSAGE
+  // ================================
 
-  const addMessageToChat = (
-    chatId,
-    message
-  ) => {
+  const addMessageToChat = (chatId, message) => {
     setChats((prev) =>
       prev.map((chat) =>
         chat.id === chatId
           ? {
               ...chat,
-              messages: [
-                ...chat.messages,
-                message,
-              ],
+              messages: [...chat.messages, message],
             }
           : chat
       )
     );
   };
 
-  /* ---------------- ASK AI ---------------- */
+  // ================================
+  // ASK AI
+  // ================================
 
-  const askAI = async (
-    customQuestion = null
-  ) => {
+  const askAI = async (customQuestion = null) => {
     const text = (
       customQuestion !== null
         ? customQuestion
@@ -230,22 +195,16 @@ function App() {
       return;
     }
 
-    let chatId =
-      activeChatId;
+    let chatId = activeChatId;
 
-    /*
-      Automatically create a chat
-      if the user starts typing without
-      clicking New Chat.
-    */
+    // Automatically create chat
+    // when user asks first question
     if (!chatId) {
-      chatId =
-        crypto.randomUUID();
+      chatId = crypto.randomUUID();
 
       const newConversation = {
         id: chatId,
-        title:
-          createChatTitle(text),
+        title: createChatTitle(text),
         messages: [],
       };
 
@@ -256,6 +215,10 @@ function App() {
 
       setActiveChatId(chatId);
     }
+
+    // ================================
+    // USER MESSAGE
+    // ================================
 
     const userMessage = {
       id: crypto.randomUUID(),
@@ -271,11 +234,8 @@ function App() {
               ...chat,
 
               title:
-                chat.messages.length ===
-                0
-                  ? createChatTitle(
-                      text
-                    )
+                chat.messages.length === 0
+                  ? createChatTitle(text)
                   : chat.title,
 
               messages: [
@@ -290,18 +250,25 @@ function App() {
     setQuestion("");
     setLoading(true);
 
+    // ================================
+    // BACKEND REQUEST
+    // ================================
+
     try {
-      const response =
-        await axios.post(
-          "http://127.0.0.1:8000/ask",
-          {
-            question: text,
-          }
-        );
+      const response = await axios.post(
+        "http://127.0.0.1:8000/ask",
+        {
+          question: text,
+        }
+      );
 
       const answer =
         response?.data?.answer ||
         "The backend returned an empty response.";
+
+      // ================================
+      // AI MESSAGE
+      // ================================
 
       const aiMessage = {
         id: crypto.randomUUID(),
@@ -310,25 +277,24 @@ function App() {
         time: currentTime(),
       };
 
-      addMessageToChat(
-        chatId,
-        aiMessage
-      );
+      addMessageToChat(chatId, aiMessage);
     } catch (error) {
       console.error(
         "OrgMind API error:",
         error
       );
 
+      const errorMessage = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content:
+          "⚠️ I couldn't connect to the OrgMind backend.\n\nPlease make sure your FastAPI server is running at `http://127.0.0.1:8000`.",
+        time: currentTime(),
+      };
+
       addMessageToChat(
         chatId,
-        {
-          id: crypto.randomUUID(),
-          role: "assistant",
-          content:
-            "⚠️ I couldn't connect to the OrgMind backend. Please make sure your FastAPI server is running at `http://127.0.0.1:8000`.",
-          time: currentTime(),
-        }
+        errorMessage
       );
 
       toast.error(
@@ -336,78 +302,17 @@ function App() {
       );
     } finally {
       setLoading(false);
->>>>>>> a75db40 (Completed professional frontend UI)
     }
   };
 
+  // ================================
+  // RENDER
+  // ================================
+
   return (
-<<<<<<< HEAD
-    <div
-      style={{
-        background: "#0f172a",
-        minHeight: "100vh",
-        color: "white",
-        padding: "40px",
-        fontFamily: "Arial",
-      }}
-    >
-      <h1>🧠 OrgMind</h1>
-      <h2>AI Organizational Memory Agent</h2>
-
-      <h3>AI Chat</h3>
-
-      <textarea
-        rows="8"
-        placeholder="Ask OrgMind anything..."
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        style={{
-          width: "100%",
-          maxWidth: "800px",
-          backgroundColor: "#1e293b",
-          color: "white",
-          border: "1px solid #475569",
-          borderRadius: "8px",
-          padding: "12px",
-          fontSize: "16px",
-        }}
-      />
-
-      <br />
-      <br />
-
-      <button
-        onClick={askAI}
-        style={{
-          backgroundColor: "#2563eb",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          padding: "12px 24px",
-          fontSize: "16px",
-          cursor: "pointer",
-        }}
-      >
-        Ask AI
-      </button>
-
-      <h3 style={{ marginTop: "30px" }}>Response</h3>
-
-      <div
-        style={{
-          background: "#1e293b",
-          padding: "15px",
-          borderRadius: "8px",
-          minHeight: "80px",
-          maxWidth: "800px",
-          whiteSpace: "pre-wrap",
-        }}
-      >
-        {answer}
-      </div>
-=======
     <div className="app-shell">
-      {/* Mobile overlay */}
+
+      {/* MOBILE SIDEBAR OVERLAY */}
       {sidebarOpen && (
         <div
           className="sidebar-overlay"
@@ -417,78 +322,61 @@ function App() {
         />
       )}
 
-      {/* Sidebar */}
+      {/* SIDEBAR */}
       <div
         className={`sidebar-container ${
-          sidebarOpen
-            ? "open"
-            : ""
+          sidebarOpen ? "open" : ""
         }`}
       >
         <Sidebar
           chats={chats}
-          activeChatId={
-            activeChatId
-          }
+          activeChatId={activeChatId}
           onNewChat={newChat}
-          onSelectChat={
-            selectChat
-          }
-          onClearChat={
-            clearCurrentChat
-          }
+          onSelectChat={selectChat}
+          onClearChat={clearCurrentChat}
           onClose={() =>
             setSidebarOpen(false)
           }
         />
       </div>
 
-      {/* Main */}
+      {/* MAIN APPLICATION */}
       <main className="main-content">
+
+        {/* NAVBAR */}
         <Navbar
           onOpenSidebar={() =>
             setSidebarOpen(true)
           }
         />
 
+        {/* CHAT */}
         <section className="chat-area">
-          {messages.length === 0 &&
-          !loading ? (
+
+          {messages.length === 0 && !loading ? (
             <WelcomeScreen
-              onPromptClick={
-                askAI
-              }
+              onPromptClick={askAI}
             />
           ) : (
             <ChatBox
-              messages={
-                messages
-              }
-              loading={
-                loading
-              }
-              onCopy={
-                copyMessage
-              }
-              bottomRef={
-                bottomRef
-              }
+              messages={messages}
+              loading={loading}
+              onCopy={copyMessage}
+              bottomRef={bottomRef}
             />
           )}
+
         </section>
 
+        {/* INPUT */}
         <ChatInput
           question={question}
-          setQuestion={
-            setQuestion
-          }
-          onSend={() =>
-            askAI()
-          }
+          setQuestion={setQuestion}
+          onSend={() => askAI()}
           loading={loading}
         />
+
       </main>
->>>>>>> a75db40 (Completed professional frontend UI)
     </div>
   );
 }
