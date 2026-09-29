@@ -141,3 +141,30 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+# -------------------------
+# Python
+# -------------------------
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Database
+*.db
+orgmind.db
+
+# ChromaDB
+chromadb/
+
+# Uploaded files
+uploads/
+
+# Python environment
+.python-version
+
+# VS Code
+.vscode/
+
+# macOS
+.DS_Store
