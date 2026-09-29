@@ -6,6 +6,7 @@ import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import ChatBox from "./components/ChatBox";
 import ChatInput from "./components/ChatInput";
+import ConflictCard from "./components/ConflictCard";
 
 function App() {
   // -----------------------------
@@ -29,6 +30,9 @@ function App() {
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Conflict state
+  const [conflict, setConflict] = useState(null);
 
   const bottomRef = useRef(null);
 
@@ -71,7 +75,7 @@ function App() {
     bottomRef.current?.scrollIntoView({
       behavior: "smooth",
     });
-  }, [messages, loading]);
+  }, [messages, loading, conflict]);
 
   // -----------------------------
   // TIME
@@ -116,6 +120,7 @@ function App() {
 
     setActiveChatId(newConversation.id);
     setQuestion("");
+    setConflict(null);
     setSidebarOpen(false);
 
     toast.success("New chat created");
@@ -128,6 +133,7 @@ function App() {
   const selectChat = (chatId) => {
     setActiveChatId(chatId);
     setQuestion("");
+    setConflict(null);
     setSidebarOpen(false);
   };
 
@@ -156,6 +162,7 @@ function App() {
     );
 
     setQuestion("");
+    setConflict(null);
 
     toast.success("Chat cleared");
   };
@@ -197,6 +204,38 @@ function App() {
   };
 
   // -----------------------------
+  // CHECK ORGANIZATIONAL CONFLICT
+  // -----------------------------
+
+  const checkConflict = async (text) => {
+    try {
+      const response = await axios.post(
+        "http://127.0.0.1:8000/memory/check-conflict",
+        {
+          content: text,
+        }
+      );
+
+      if (
+        response?.data &&
+        response.data.conflict === true
+      ) {
+        return response.data;
+      }
+
+      return null;
+    } catch (error) {
+      console.error(
+        "Conflict detection error:",
+        error
+      );
+
+      // Don't break normal chat if conflict service fails.
+      return null;
+    }
+  };
+
+  // -----------------------------
   // ASK AI
   // -----------------------------
 
@@ -211,10 +250,15 @@ function App() {
       return;
     }
 
+    // Clear previous conflict
+    setConflict(null);
+
     let chatId = activeChatId;
 
-    // Create a chat automatically
-    // if none exists.
+    // -----------------------------
+    // CREATE CHAT IF NONE EXISTS
+    // -----------------------------
+
     if (!chatId) {
       chatId = crypto.randomUUID();
 
@@ -269,7 +313,25 @@ function App() {
     setLoading(true);
 
     // -----------------------------
-    // FASTAPI REQUEST
+    // CONFLICT CHECK
+    // -----------------------------
+
+    const detectedConflict =
+      await checkConflict(text);
+
+    if (detectedConflict) {
+      setConflict(detectedConflict);
+      setLoading(false);
+
+      toast("Potential organizational conflict detected.", {
+        icon: "⚠️",
+      });
+
+      return;
+    }
+
+    // -----------------------------
+    // NORMAL FASTAPI REQUEST
     // -----------------------------
 
     try {
@@ -299,6 +361,7 @@ function App() {
         chatId,
         assistantMessage
       );
+
     } catch (error) {
       console.error(
         "OrgMind backend error:",
@@ -327,6 +390,76 @@ function App() {
   };
 
   // -----------------------------
+  // KEEP PREVIOUS INFORMATION
+  // -----------------------------
+
+  const handleKeepOld = () => {
+    setConflict(null);
+
+    toast.success(
+      "Previous organizational information kept."
+    );
+  };
+
+  // -----------------------------
+  // ACCEPT NEW INFORMATION
+  // -----------------------------
+
+  const handleAcceptNew = async () => {
+    if (!conflict?.new_information) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await axios.post(
+        "http://127.0.0.1:8000/memory/remember",
+        {
+          content: conflict.new_information,
+        }
+      );
+
+      if (!response.data?.success) {
+        throw new Error(
+          "Memory update failed"
+        );
+      }
+
+      setConflict(null);
+
+      toast.success(
+        "New organizational decision saved."
+      );
+
+      // Add confirmation to chat
+      if (activeChatId) {
+        addMessage(activeChatId, {
+          id: crypto.randomUUID(),
+          role: "assistant",
+          content:
+            `✅ **Organizational memory updated.**\n\n` +
+            `The new information is now recorded as the current decision:\n\n` +
+            `> ${conflict.new_information}`,
+          time: getTime(),
+        });
+      }
+
+    } catch (error) {
+      console.error(
+        "Memory update error:",
+        error
+      );
+
+      toast.error(
+        "Could not update organizational memory."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // -----------------------------
   // RENDER
   // -----------------------------
 
@@ -334,6 +467,7 @@ function App() {
     <div className="app-shell">
 
       {/* MOBILE OVERLAY */}
+
       {sidebarOpen && (
         <div
           className="sidebar-overlay"
@@ -344,6 +478,7 @@ function App() {
       )}
 
       {/* SIDEBAR */}
+
       <aside
         className={`sidebar-container ${
           sidebarOpen ? "open" : ""
@@ -362,9 +497,11 @@ function App() {
       </aside>
 
       {/* MAIN */}
+
       <main className="main-content">
 
         {/* NAVBAR */}
+
         <Navbar
           onOpenSidebar={() =>
             setSidebarOpen(true)
@@ -372,9 +509,13 @@ function App() {
         />
 
         {/* CHAT AREA */}
+
         <section className="chat-area">
 
-          {messages.length === 0 && !loading ? (
+          {messages.length === 0 &&
+          !loading &&
+          !conflict ? (
+
             <div className="welcome-screen">
 
               <div className="welcome-logo">
@@ -422,18 +563,36 @@ function App() {
               </div>
 
             </div>
+
           ) : (
-            <ChatBox
-              messages={messages}
-              loading={loading}
-              onCopy={copyMessage}
-              bottomRef={bottomRef}
-            />
+
+            <>
+              <ChatBox
+                messages={messages}
+                loading={loading}
+                onCopy={copyMessage}
+                bottomRef={bottomRef}
+              />
+
+              {/* CONFLICT CARD */}
+
+              {conflict && (
+                <ConflictCard
+                  conflict={conflict}
+                  onKeepOld={handleKeepOld}
+                  onAccept={handleAcceptNew}
+                />
+              )}
+
+              <div ref={bottomRef} />
+
+            </>
           )}
 
         </section>
 
         {/* INPUT */}
+
         <ChatInput
           question={question}
           setQuestion={setQuestion}
@@ -442,6 +601,7 @@ function App() {
         />
 
       </main>
+
     </div>
   );
 }
