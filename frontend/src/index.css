@@ -1454,3 +1454,147 @@ textarea:focus-visible {
     transition-duration: 0.01ms !important;
   }
 }
+/* ============================= */
+/* CONFLICT CARD                 */
+/* ============================= */
+
+.conflict-card {
+  width: 100%;
+  margin: 16px 0;
+  padding: 20px;
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.95);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.conflict-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.conflict-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.12);
+  font-size: 20px;
+}
+
+.conflict-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.conflict-header p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.conflict-section {
+  margin-top: 14px;
+}
+
+.conflict-section > span {
+  display: block;
+  margin-bottom: 7px;
+  font-size: 12px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.old-memory,
+.new-memory {
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.old-memory {
+  background: rgba(127, 29, 29, 0.2);
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  color: #fecaca;
+}
+
+.new-memory {
+  background: rgba(22, 101, 52, 0.2);
+  border: 1px solid rgba(74, 222, 128, 0.2);
+  color: #bbf7d0;
+}
+
+.conflict-arrow {
+  text-align: center;
+  margin: 8px 0;
+  color: #94a3b8;
+}
+
+.conflict-reason {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.6);
+}
+
+.conflict-reason strong {
+  font-size: 13px;
+  color: #e2e8f0;
+}
+
+.conflict-reason p {
+  margin: 5px 0 0;
+  font-size: 13px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+
+.conflict-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.keep-button,
+.accept-button {
+  flex: 1;
+  border: none;
+  border-radius: 10px;
+  padding: 11px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.keep-button {
+  background: rgba(71, 85, 105, 0.5);
+  color: #e2e8f0;
+}
+
+.keep-button:hover {
+  background: rgba(71, 85, 105, 0.8);
+}
+
+.accept-button {
+  background: #2563eb;
+  color: white;
+}
+
+.accept-button:hover {
+  background: #1d4ed8;
+}
+
+@media (max-width: 600px) {
+  .conflict-actions {
+    flex-direction: column;
+  }
+}
