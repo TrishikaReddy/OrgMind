@@ -78,15 +78,7 @@ CURRENT QUESTION
 """
 
     response = client.chat.completions.create(
-<<<<<<< HEAD
-<<<<<<< HEAD
-        model="openai/gpt-oss-20b",
-=======
         model="llama-3.1-8b-instant",
->>>>>>> a75db40 (Completed professional frontend UI)
-=======
-        model="openai/gpt-oss-120b",
->>>>>>> f1be07c (Completed backend RAG pipeline)
         messages=[
             {
                 "role": "system",
