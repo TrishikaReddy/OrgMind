@@ -8,7 +8,9 @@ function createId() {
     return crypto.randomUUID();
   }
 
-  return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `${Date.now()}-${Math.random()
+    .toString(36)
+    .slice(2)}`;
 }
 
 function getTime() {
@@ -22,10 +24,9 @@ function getChatTitle(text) {
   const clean = text.trim();
 
   if (!clean) return "New Chat";
-
   if (clean.length <= 32) return clean;
 
-  return clean.substring(0, 32) + "...";
+  return `${clean.substring(0, 32)}...`;
 }
 
 function createChat() {
@@ -37,6 +38,10 @@ function createChat() {
 }
 
 function App() {
+  // =========================================================
+  // STATE
+  // =========================================================
+
   const [chats, setChats] = useState(() => {
     try {
       const saved = localStorage.getItem("orgmind-chats");
@@ -49,7 +54,7 @@ function App() {
         }
       }
     } catch (error) {
-      console.error("Could not load saved chats:", error);
+      console.error("Could not load chats:", error);
     }
 
     return [];
@@ -63,12 +68,18 @@ function App() {
     }
   });
 
+  const [activeView, setActiveView] = useState("chat");
+
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
+
   const [uploadStatus, setUploadStatus] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState([]);
+
   const [conflict, setConflict] = useState(null);
+
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
   const [toast, setToast] = useState(null);
 
   const messagesEndRef = useRef(null);
@@ -80,9 +91,16 @@ function App() {
 
   const messages = activeChat?.messages || [];
 
+  // =========================================================
+  // PERSISTENCE
+  // =========================================================
+
   useEffect(() => {
     try {
-      localStorage.setItem("orgmind-chats", JSON.stringify(chats));
+      localStorage.setItem(
+        "orgmind-chats",
+        JSON.stringify(chats)
+      );
     } catch (error) {
       console.error("Could not save chats:", error);
     }
@@ -91,7 +109,10 @@ function App() {
   useEffect(() => {
     try {
       if (activeChatId) {
-        localStorage.setItem("orgmind-active-chat", activeChatId);
+        localStorage.setItem(
+          "orgmind-active-chat",
+          activeChatId
+        );
       } else {
         localStorage.removeItem("orgmind-active-chat");
       }
@@ -106,6 +127,10 @@ function App() {
     });
   }, [messages, loading, conflict]);
 
+  // =========================================================
+  // TOAST
+  // =========================================================
+
   const showToast = (message, type = "success") => {
     setToast({
       message,
@@ -117,11 +142,17 @@ function App() {
     }, 3000);
   };
 
+  // =========================================================
+  // CHAT
+  // =========================================================
+
   const newChat = () => {
     const chat = createChat();
 
     setChats((previous) => [chat, ...previous]);
     setActiveChatId(chat.id);
+    setActiveView("chat");
+
     setQuestion("");
     setConflict(null);
     setUploadStatus("");
@@ -130,6 +161,8 @@ function App() {
 
   const selectChat = (chatId) => {
     setActiveChatId(chatId);
+    setActiveView("chat");
+
     setQuestion("");
     setConflict(null);
     setUploadStatus("");
@@ -156,7 +189,7 @@ function App() {
       setConflict(null);
     }
 
-    showToast("Conversation deleted", "success");
+    showToast("Conversation deleted");
   };
 
   const clearChat = () => {
@@ -180,7 +213,7 @@ function App() {
     setQuestion("");
     setConflict(null);
 
-    showToast("Conversation cleared", "success");
+    showToast("Conversation cleared");
   };
 
   const addMessage = (chatId, message) => {
@@ -211,6 +244,10 @@ function App() {
     );
   };
 
+  // =========================================================
+  // UPLOAD
+  // =========================================================
+
   const handleUpload = async (file) => {
     if (!file) return;
 
@@ -227,14 +264,21 @@ function App() {
 
     if (!allowedExtensions.includes(extension)) {
       setUploadStatus(
-        "❌ Unsupported file. Use PDF, DOC, DOCX or TXT."
+        "Unsupported file. Use PDF, DOC, DOCX or TXT."
       );
 
       showToast("Unsupported file type", "error");
       return;
     }
 
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadStatus("File is larger than 10MB.");
+      showToast("Maximum file size is 10MB", "error");
+      return;
+    }
+
     const formData = new FormData();
+
     formData.append("file", file);
 
     try {
@@ -261,30 +305,25 @@ function App() {
       ]);
 
       setUploadStatus(
-        `✅ ${filename} indexed successfully`
+        `${filename} indexed successfully`
       );
 
       showToast(
-        `${filename} uploaded successfully`,
-        "success"
+        `${filename} uploaded successfully`
       );
 
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     } catch (error) {
-      console.error("Document upload error:", error);
+      console.error("Upload error:", error);
 
       const message =
         error.response?.data?.detail ||
-        "❌ Failed to upload document.";
+        "Failed to upload document.";
 
       setUploadStatus(message);
-
-      showToast(
-        "Document upload failed",
-        "error"
-      );
+      showToast("Document upload failed", "error");
     }
   };
 
@@ -295,6 +334,10 @@ function App() {
       handleUpload(file);
     }
   };
+
+  // =========================================================
+  // CONFLICT
+  // =========================================================
 
   const checkConflict = async (text) => {
     try {
@@ -330,14 +373,11 @@ function App() {
       id: createId(),
       role: "assistant",
       content:
-        "ℹ️ The previous organizational information remains the active memory.",
+        "The previous organizational information remains the active memory.",
       time: getTime(),
     });
 
-    showToast(
-      "Previous information kept",
-      "success"
-    );
+    showToast("Previous information kept");
   };
 
   const handleAcceptNew = async () => {
@@ -374,15 +414,14 @@ function App() {
         id: createId(),
         role: "assistant",
         content:
-          `✅ Organizational memory updated.\n\n` +
+          `Organizational memory updated.\n\n` +
           `The new information is now recorded as the current decision:\n\n` +
           newInformation,
         time: getTime(),
       });
 
       showToast(
-        "New organizational decision saved",
-        "success"
+        "New organizational decision saved"
       );
     } catch (error) {
       console.error(
@@ -394,7 +433,7 @@ function App() {
         id: createId(),
         role: "assistant",
         content:
-          "❌ I couldn't update organizational memory. Please try again.",
+          "I couldn't update organizational memory. Please try again.",
         time: getTime(),
       });
 
@@ -406,6 +445,10 @@ function App() {
       setLoading(false);
     }
   };
+
+  // =========================================================
+  // ASK AI
+  // =========================================================
 
   const askAI = async (customQuestion = null) => {
     const text = (
@@ -454,14 +497,12 @@ function App() {
       }
     }
 
-    const userMessage = {
+    addMessage(chatId, {
       id: createId(),
       role: "user",
       content: text,
       time: getTime(),
-    };
-
-    addMessage(chatId, userMessage);
+    });
 
     setLoading(true);
 
@@ -522,7 +563,7 @@ function App() {
         id: createId(),
         role: "assistant",
         content:
-          "⚠️ I couldn't connect to the OrgMind backend.\n\nPlease make sure the FastAPI server is running at http://127.0.0.1:8000.",
+          "I couldn't connect to the OrgMind backend. Please make sure the FastAPI server is running.",
         time: getTime(),
       });
 
@@ -549,30 +590,694 @@ function App() {
     }
   };
 
-  const handlePromptClick = (prompt) => {
-    askAI(prompt);
-  };
-
   const copyMessage = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
-
-      showToast(
-        "Message copied",
-        "success"
-      );
-    } catch (error) {
-      console.error(error);
-
-      showToast(
-        "Could not copy message",
-        "error"
-      );
+      showToast("Message copied");
+    } catch {
+      showToast("Could not copy message", "error");
     }
   };
 
+  // =========================================================
+  // NAVIGATION
+  // =========================================================
+
+  const changeView = (view) => {
+    setActiveView(view);
+    setSidebarOpen(false);
+  };
+
+  // =========================================================
+  // RENDER CHAT
+  // =========================================================
+
+  const renderChat = () => (
+    <section className="chat-page">
+
+      {/* UPLOAD HERO */}
+
+      <div className="upload-card">
+
+        <div
+          className="upload-drop-zone"
+          onClick={() =>
+            fileInputRef.current?.click()
+          }
+        >
+
+          <div className="upload-cloud">
+            ☁
+          </div>
+
+          <h3>
+            Drag & Drop your files here
+          </h3>
+
+          <p>
+            or click to browse
+          </p>
+
+          <div className="file-types">
+            <span>📕 PDF</span>
+            <span>📘 DOCX</span>
+            <span>📄 TXT</span>
+          </div>
+
+          <small>
+            Supports PDF, DOCX, TXT • Max file size: 10MB
+          </small>
+
+        </div>
+
+      </div>
+
+      {/* UPLOAD STATUS */}
+
+      {uploadStatus && (
+        <div
+          className={`upload-status ${
+            uploadStatus.toLowerCase().includes("failed") ||
+            uploadStatus.toLowerCase().includes("unsupported")
+              ? "upload-error"
+              : ""
+          }`}
+        >
+          ✓ {uploadStatus}
+        </div>
+      )}
+
+      {/* CHAT */}
+
+      <div className="chat-content">
+
+        {messages.length === 0 &&
+        !loading &&
+        !conflict ? (
+
+          <div className="welcome-screen">
+
+            <div className="welcome-icon">
+              🧠
+            </div>
+
+            <h2>
+              Your organization's memory,
+              <br />
+              always with you.
+            </h2>
+
+            <p>
+              Ask questions, upload documents,
+              and let OrgMind remember
+              organizational knowledge.
+            </p>
+
+            <div className="quick-prompts">
+
+              <button
+                onClick={() =>
+                  askAI(
+                    "What are the latest decisions made by our organization?"
+                  )
+                }
+              >
+                What are the latest decisions
+                made by our organization?
+              </button>
+
+              <button
+                onClick={() =>
+                  askAI(
+                    "Summarize our important projects and their current status."
+                  )
+                }
+              >
+                Summarize our important projects
+                and their current status.
+              </button>
+
+            </div>
+
+          </div>
+
+        ) : (
+
+          <div className="messages-container">
+
+            {messages.map((message) => (
+
+              <div
+                key={message.id}
+                className={`message-row ${
+                  message.role === "user"
+                    ? "user-row"
+                    : "assistant-row"
+                }`}
+              >
+
+                <div
+                  className={`message ${
+                    message.role === "user"
+                      ? "user-message"
+                      : "assistant-message"
+                  }`}
+                >
+
+                  <div className="message-header">
+
+                    <strong>
+                      {message.role === "user"
+                        ? "You"
+                        : "OrgMind"}
+                    </strong>
+
+                    <span>
+                      {message.time}
+                    </span>
+
+                    {message.role === "assistant" && (
+                      <button
+                        className="copy-message"
+                        onClick={() =>
+                          copyMessage(
+                            message.content
+                          )
+                        }
+                      >
+                        ⧉
+                      </button>
+                    )}
+
+                  </div>
+
+                  <div className="message-content">
+                    {message.content}
+                  </div>
+
+                  {message.source && (
+                    <div className="message-source">
+                      📄 Source:{" "}
+                      {Array.isArray(
+                        message.source
+                      )
+                        ? message.source.join(", ")
+                        : message.source}
+                    </div>
+                  )}
+
+                </div>
+
+              </div>
+
+            ))}
+
+            {conflict && (
+
+              <div className="conflict-card">
+
+                <div className="conflict-header">
+                  ⚠️ Potential Conflict Detected
+                </div>
+
+                <p>
+                  OrgMind found information that
+                  may conflict with existing
+                  organizational memory.
+                </p>
+
+                <div className="conflict-section">
+
+                  <h4>
+                    Previous information
+                  </h4>
+
+                  <div className="conflict-old">
+                    {conflict.previous_information ||
+                      conflict.old_information ||
+                      conflict.previous ||
+                      "Previous organizational information"}
+                  </div>
+
+                </div>
+
+                <div className="conflict-section">
+
+                  <h4>
+                    New information
+                  </h4>
+
+                  <div className="conflict-new">
+                    {conflict.new_information ||
+                      conflict.new ||
+                      "New organizational information"}
+                  </div>
+
+                </div>
+
+                {conflict.explanation && (
+                  <div className="conflict-explanation">
+                    <strong>
+                      Why this matters:
+                    </strong>
+
+                    <p>
+                      {conflict.explanation}
+                    </p>
+                  </div>
+                )}
+
+                <div className="conflict-actions">
+
+                  <button
+                    className="keep-button"
+                    onClick={
+                      handleKeepPrevious
+                    }
+                    disabled={loading}
+                  >
+                    Keep Previous
+                  </button>
+
+                  <button
+                    className="accept-button"
+                    onClick={
+                      handleAcceptNew
+                    }
+                    disabled={loading}
+                  >
+                    Accept New Decision
+                  </button>
+
+                </div>
+
+              </div>
+
+            )}
+
+            {loading && (
+              <div className="thinking-message">
+                <span>🤖</span>
+                OrgMind is thinking
+                <span className="thinking-dots">
+                  ...
+                </span>
+              </div>
+            )}
+
+            <div ref={messagesEndRef} />
+
+          </div>
+        )}
+
+      </div>
+
+      {/* INPUT */}
+
+      <div className="chat-input-section">
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.doc,.docx,.txt"
+          style={{ display: "none" }}
+          onChange={handleFileChange}
+        />
+
+        <div className="chat-input-wrapper">
+
+          <button
+            className="input-icon-button"
+            onClick={() =>
+              fileInputRef.current?.click()
+            }
+            disabled={loading}
+            title="Upload document"
+          >
+            📎
+          </button>
+
+          <textarea
+            ref={textareaRef}
+            value={question}
+            onChange={(event) =>
+              setQuestion(event.target.value)
+            }
+            onKeyDown={handleKeyDown}
+            placeholder="Ask anything about documents, team, or organization..."
+            rows={1}
+            disabled={loading}
+          />
+
+          <button
+            className="send-button"
+            onClick={() => askAI()}
+            disabled={
+              loading ||
+              !question.trim()
+            }
+          >
+            ➤
+          </button>
+
+        </div>
+
+        <div className="input-hint">
+          📎 PDF, DOCX, TXT
+          <span>•</span>
+          Enter to send
+          <span>•</span>
+          Shift + Enter for a new line
+        </div>
+
+      </div>
+
+    </section>
+  );
+
+  // =========================================================
+  // DOCUMENTS
+  // =========================================================
+
+  const renderDocuments = () => (
+    <section className="content-page">
+
+      <div className="page-heading">
+        <div>
+          <span className="eyebrow">
+            KNOWLEDGE CENTER
+          </span>
+
+          <h2>
+            Documents
+          </h2>
+
+          <p>
+            Upload and manage your organization's
+            knowledge.
+          </p>
+        </div>
+
+        <button
+          className="primary-button"
+          onClick={() =>
+            fileInputRef.current?.click()
+          }
+        >
+          + Upload Document
+        </button>
+      </div>
+
+      <div className="document-grid">
+
+        {uploadedFiles.length === 0 ? (
+
+          <div className="empty-documents">
+
+            <div className="empty-icon">
+              📄
+            </div>
+
+            <h3>
+              No documents uploaded yet
+            </h3>
+
+            <p>
+              Upload your first organizational
+              document to build your knowledge base.
+            </p>
+
+            <button
+              className="primary-button"
+              onClick={() =>
+                fileInputRef.current?.click()
+              }
+            >
+              Upload Document
+            </button>
+
+          </div>
+
+        ) : (
+
+          uploadedFiles.map((file) => (
+
+            <div
+              className="document-card"
+              key={file}
+            >
+
+              <div className="document-icon">
+                {file.toLowerCase().endsWith(".pdf")
+                  ? "📕"
+                  : file.toLowerCase().endsWith(".docx")
+                  ? "📘"
+                  : "📄"}
+              </div>
+
+              <div className="document-info">
+
+                <strong>
+                  {file}
+                </strong>
+
+                <span>
+                  Indexed successfully
+                </span>
+
+              </div>
+
+              <div className="indexed-badge">
+                ✓ Indexed
+              </div>
+
+            </div>
+
+          ))
+
+        )}
+
+      </div>
+
+    </section>
+  );
+
+  // =========================================================
+  // KNOWLEDGE BASE
+  // =========================================================
+
+  const renderKnowledge = () => (
+    <section className="content-page">
+
+      <div className="page-heading">
+
+        <div>
+
+          <span className="eyebrow">
+            ORGANIZATIONAL MEMORY
+          </span>
+
+          <h2>
+            Knowledge Base
+          </h2>
+
+          <p>
+            Important information remembered by OrgMind.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div className="knowledge-grid">
+
+        <div className="knowledge-card">
+
+          <div className="knowledge-icon">
+            🧠
+          </div>
+
+          <h3>
+            Conversation Memory
+          </h3>
+
+          <p>
+            OrgMind remembers information from
+            your organizational conversations.
+          </p>
+
+          <div className="knowledge-stat">
+            {chats.length}
+            <span>
+              conversations
+            </span>
+          </div>
+
+        </div>
+
+        <div className="knowledge-card">
+
+          <div className="knowledge-icon">
+            📚
+          </div>
+
+          <h3>
+            Document Knowledge
+          </h3>
+
+          <p>
+            Indexed documents are available
+            to the AI for contextual answers.
+          </p>
+
+          <div className="knowledge-stat">
+            {uploadedFiles.length}
+            <span>
+              documents
+            </span>
+          </div>
+
+        </div>
+
+        <div className="knowledge-card">
+
+          <div className="knowledge-icon">
+            🔄
+          </div>
+
+          <h3>
+            Decision Management
+          </h3>
+
+          <p>
+            Conflicting organizational information
+            can be reviewed before updating memory.
+          </p>
+
+          <div className="memory-status">
+            ● Memory system active
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+  );
+
+  // =========================================================
+  // SETTINGS
+  // =========================================================
+
+  const renderSettings = () => (
+    <section className="content-page">
+
+      <div className="page-heading">
+
+        <div>
+
+          <span className="eyebrow">
+            CONFIGURATION
+          </span>
+
+          <h2>
+            Settings
+          </h2>
+
+          <p>
+            OrgMind system configuration.
+          </p>
+
+        </div>
+
+      </div>
+
+      <div className="settings-list">
+
+        <div className="settings-card">
+
+          <div>
+            <strong>
+              AI Provider
+            </strong>
+
+            <p>
+              Large language model provider
+            </p>
+          </div>
+
+          <span className="setting-value">
+            Groq
+          </span>
+
+        </div>
+
+        <div className="settings-card">
+
+          <div>
+            <strong>
+              Backend
+            </strong>
+
+            <p>
+              Application API
+            </p>
+          </div>
+
+          <span className="setting-value">
+            FastAPI
+          </span>
+
+        </div>
+
+        <div className="settings-card">
+
+          <div>
+            <strong>
+              Memory Engine
+            </strong>
+
+            <p>
+              Organizational memory system
+            </p>
+          </div>
+
+          <span className="setting-value">
+            Hindsight
+          </span>
+
+        </div>
+
+        <div className="settings-card">
+
+          <div>
+            <strong>
+              System Status
+            </strong>
+
+            <p>
+              Current backend connection
+            </p>
+          </div>
+
+          <span className="system-online">
+            ● Connected
+          </span>
+
+        </div>
+
+      </div>
+
+    </section>
+  );
+
+  // =========================================================
+  // MAIN RENDER
+  // =========================================================
+
   return (
     <div className="app-shell">
+
       {sidebarOpen && (
         <div
           className="sidebar-overlay"
@@ -582,447 +1287,481 @@ function App() {
         />
       )}
 
+      {/* =====================================================
+          SIDEBAR
+      ===================================================== */}
+
       <aside
         className={`app-sidebar ${
-          sidebarOpen
-            ? "sidebar-open"
-            : ""
+          sidebarOpen ? "sidebar-open" : ""
         }`}
       >
-        <div className="sidebar-top">
-          <div className="brand-row">
-            <div className="brand-logo">
-              🧠
+
+        <div className="sidebar-brand">
+
+          <div className="brand-logo">
+            🧠
+          </div>
+
+          <div>
+
+            <div className="brand-name">
+              OrgMind
             </div>
 
-            <div>
-              <div className="brand-name">
-                OrgMind
-              </div>
-
-              <div className="brand-subtitle">
-                ORGANIZATIONAL AI
-              </div>
+            <div className="brand-subtitle">
+              AI ORGANIZATIONAL MEMORY
             </div>
 
-            <button
-              className="mobile-close-button"
-              onClick={() =>
-                setSidebarOpen(false)
-              }
-              aria-label="Close sidebar"
-            >
-              ×
-            </button>
           </div>
 
           <button
-            className="new-chat-button"
-            onClick={newChat}
-          >
-            <span>＋</span>
-            <span>New conversation</span>
-          </button>
-        </div>
-
-        <div className="sidebar-middle">
-          <div className="sidebar-section-title">
-            RECENT CHATS
-          </div>
-
-          <div className="chat-history">
-            {chats.length === 0 ? (
-              <div className="empty-history">
-                <span>💬</span>
-
-                <span>
-                  Your conversations
-                  will appear here.
-                </span>
-              </div>
-            ) : (
-              chats.map((chat) => (
-                <button
-                  key={chat.id}
-                  className={`history-item ${
-                    chat.id === activeChatId
-                      ? "active"
-                      : ""
-                  }`}
-                  onClick={() =>
-                    selectChat(chat.id)
-                  }
-                >
-                  <span className="history-icon">
-                    💬
-                  </span>
-
-                  <span className="history-title">
-                    {chat.title}
-                  </span>
-
-                  <span
-                    className="history-delete"
-                    onClick={(event) =>
-                      deleteChat(
-                        chat.id,
-                        event
-                      )
-                    }
-                    role="button"
-                    tabIndex={0}
-                    aria-label="Delete conversation"
-                  >
-                    ×
-                  </span>
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="sidebar-bottom">
-          <button
-            className="sidebar-action"
-            type="button"
+            className="mobile-close-button"
             onClick={() =>
-              showToast(
-                "Settings coming soon",
-                "success"
-              )
+              setSidebarOpen(false)
+            }
+          >
+            ×
+          </button>
+
+        </div>
+
+        <button
+          className="new-chat-button"
+          onClick={newChat}
+        >
+          <span>＋</span>
+          New conversation
+        </button>
+
+        {/* NAVIGATION */}
+
+        <nav className="sidebar-nav">
+
+          <button
+            className={
+              activeView === "chat"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              changeView("chat")
+            }
+          >
+            <span>💬</span>
+            Chat
+          </button>
+
+          <button
+            className={
+              activeView === "documents"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              changeView("documents")
+            }
+          >
+            <span>📄</span>
+            Documents
+          </button>
+
+          <button
+            className={
+              activeView === "knowledge"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              changeView("knowledge")
+            }
+          >
+            <span>🗄</span>
+            Knowledge Base
+          </button>
+
+          <button
+            className={
+              activeView === "settings"
+                ? "nav-item active"
+                : "nav-item"
+            }
+            onClick={() =>
+              changeView("settings")
             }
           >
             <span>⚙</span>
-            <span>Settings</span>
+            Settings
           </button>
 
+        </nav>
+
+        <div className="sidebar-divider" />
+
+        {/* UPLOADED DOCUMENTS */}
+
+        <div className="sidebar-documents">
+
+          <div className="sidebar-section-title">
+            <span>
+              UPLOADED DOCUMENTS
+            </span>
+
+            <span className="count-badge">
+              {uploadedFiles.length}
+            </span>
+          </div>
+
+          {uploadedFiles.length === 0 ? (
+
+            <div className="sidebar-empty">
+              No documents yet
+            </div>
+
+          ) : (
+
+            uploadedFiles.slice(-6).reverse().map(
+              (file) => (
+
+                <div
+                  className="sidebar-document"
+                  key={file}
+                >
+
+                  <span className="sidebar-file-icon">
+                    {file.toLowerCase().endsWith(".pdf")
+                      ? "📕"
+                      : "📄"}
+                  </span>
+
+                  <div className="sidebar-file-info">
+
+                    <span>
+                      {file}
+                    </span>
+
+                    <small>
+                      Indexed
+                    </small>
+
+                  </div>
+
+                </div>
+
+              )
+            )
+
+          )}
+
+        </div>
+
+        <div className="sidebar-bottom">
+
+          <div className="sidebar-tip">
+            <div>
+              ✨
+            </div>
+
+            <strong>
+              Smarter context.
+              <br />
+              Better decisions.
+            </strong>
+
+            <p>
+              OrgMind helps your team
+              remember what matters.
+            </p>
+          </div>
+
           <button
-            className="sidebar-action danger"
-            type="button"
+            className="clear-button"
             onClick={clearChat}
             disabled={
               !activeChatId ||
               messages.length === 0
             }
           >
-            <span>🗑</span>
-            <span>
-              Clear conversation
-            </span>
+            🗑 Clear conversation
           </button>
 
           <div className="sidebar-footer">
             React • FastAPI • Groq • Hindsight
           </div>
+
         </div>
+
       </aside>
 
+      {/* =====================================================
+          MAIN
+      ===================================================== */}
+
       <main className="main-content">
+
+        {/* HEADER */}
+
         <header className="app-header">
+
           <div className="header-left">
+
             <button
               className="mobile-menu-button"
               onClick={() =>
                 setSidebarOpen(true)
               }
-              aria-label="Open sidebar"
             >
               ☰
             </button>
 
-            <div>
+            <div className="header-brand-mobile">
+              OrgMind
+            </div>
+
+            <div className="header-title">
+
               <h1>
-                OrgMind Assistant
+                {activeView === "chat"
+                  ? "OrgMind Assistant"
+                  : activeView === "documents"
+                  ? "Documents"
+                  : activeView === "knowledge"
+                  ? "Knowledge Base"
+                  : "Settings"}
               </h1>
 
               <div className="online-status">
                 <span className="online-dot" />
                 Online
               </div>
+
             </div>
+
           </div>
 
-          <div className="header-badge">
-            Groq
-          </div>
-        </header>
+          <div className="header-right">
 
-        <section className="chat-area">
-          {messages.length === 0 &&
-            !loading &&
-            !conflict && (
-              <div className="welcome-screen">
-                <div className="welcome-logo">
-                  🧠
-                </div>
+            <button className="header-icon">
+              ⌕
+            </button>
 
-                <h2>
-                  Your organization's memory,
-                  <br />
-                  always with you.
-                </h2>
+            <button className="header-icon notification">
+              🔔
+              <span />
+            </button>
 
-                <p className="welcome-description">
-                  Ask questions, upload documents,
-                  and let OrgMind remember
-                  organizational knowledge.
-                </p>
+            <div className="user-profile">
 
-                <div className="quick-prompts">
-                  <button
-                    onClick={() =>
-                      handlePromptClick(
-                        "What are the latest decisions made by our organization?"
-                      )
-                    }
-                  >
-                    What are the latest decisions
-                    made by our organization?
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      handlePromptClick(
-                        "Summarize our important projects and their current status."
-                      )
-                    }
-                  >
-                    Summarize our important
-                    projects and their current
-                    status.
-                  </button>
-                </div>
-              </div>
-            )}
-
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={`message-row ${
-                message.role === "user"
-                  ? "user-row"
-                  : "assistant-row"
-              }`}
-            >
-              <div
-                className={`message ${
-                  message.role === "user"
-                    ? "user-message"
-                    : "assistant-message"
-                }`}
-              >
-                <div className="message-header">
-                  <strong>
-                    {message.role === "user"
-                      ? "You"
-                      : "OrgMind"}
-                  </strong>
-
-                  <span>
-                    {message.time}
-                  </span>
-
-                  {message.role ===
-                    "assistant" && (
-                    <button
-                      className="copy-message"
-                      onClick={() =>
-                        copyMessage(
-                          message.content
-                        )
-                      }
-                      title="Copy"
-                    >
-                      ⧉
-                    </button>
-                  )}
-                </div>
-
-                <div className="message-content">
-                  {message.content}
-                </div>
-
-                {message.source && (
-                  <div className="message-source">
-                    📄 Source:{" "}
-                    {Array.isArray(
-                      message.source
-                    )
-                      ? message.source.join(
-                          ", "
-                        )
-                      : message.source}
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-
-          {conflict && (
-            <div className="conflict-card">
-              <div className="conflict-header">
-                ⚠️ Potential Conflict Detected
+              <div className="user-avatar">
+                S
               </div>
 
-              <p className="conflict-description">
-                OrgMind found information that
-                may conflict with an existing
-                organizational memory.
-              </p>
+              <div className="user-info">
+                <strong>
+                  OrgMind User
+                </strong>
 
-              <div className="conflict-section">
-                <h4>
-                  Previous information
-                </h4>
-
-                <div className="conflict-old">
-                  {conflict.previous_information ||
-                    conflict.old_information ||
-                    conflict.previous ||
-                    "Previous organizational information"}
-                </div>
+                <small>
+                  Product Team
+                </small>
               </div>
-
-              <div className="conflict-section">
-                <h4>
-                  New information
-                </h4>
-
-                <div className="conflict-new">
-                  {conflict.new_information ||
-                    conflict.new ||
-                    "New organizational information"}
-                </div>
-              </div>
-
-              {conflict.explanation && (
-                <div className="conflict-explanation">
-                  <strong>
-                    Why this matters:
-                  </strong>
-
-                  <p>
-                    {conflict.explanation}
-                  </p>
-                </div>
-              )}
-
-              <div className="conflict-actions">
-                <button
-                  className="keep-button"
-                  onClick={
-                    handleKeepPrevious
-                  }
-                  disabled={loading}
-                >
-                  Keep Previous
-                </button>
-
-                <button
-                  className="accept-button"
-                  onClick={
-                    handleAcceptNew
-                  }
-                  disabled={loading}
-                >
-                  Accept New Decision
-                </button>
-              </div>
-            </div>
-          )}
-
-          {loading && (
-            <div className="thinking-message">
-              <span className="thinking-icon">
-                🤖
-              </span>
 
               <span>
-                OrgMind is thinking
+               ⌄
               </span>
 
-              <span className="thinking-dots">
-                <span>.</span>
-                <span>.</span>
-                <span>.</span>
-              </span>
             </div>
-          )}
 
-          <div ref={messagesEndRef} />
-        </section>
-
-        <div className="input-area">
-          {uploadStatus && (
-            <div
-              className={`upload-status ${
-                uploadStatus.startsWith("❌")
-                  ? "upload-error"
-                  : uploadStatus.startsWith("✅")
-                  ? "upload-success"
-                  : ""
-              }`}
-            >
-              {uploadStatus}
-            </div>
-          )}
-
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.txt"
-            style={{ display: "none" }}
-            onChange={handleFileChange}
-          />
-
-          <div className="chat-input-wrapper">
-            <button
-              type="button"
-              className="upload-button"
-              onClick={() =>
-                fileInputRef.current?.click()
-              }
-              disabled={loading}
-              title="Upload document"
-            >
-              📎
-            </button>
-
-            <textarea
-              ref={textareaRef}
-              className="chat-input"
-              value={question}
-              onChange={(event) =>
-                setQuestion(
-                  event.target.value
-                )
-              }
-              onKeyDown={handleKeyDown}
-              placeholder="Ask OrgMind anything..."
-              rows={1}
-              disabled={loading}
-            />
-
-            <button
-              type="button"
-              className="send-button"
-              onClick={() => askAI()}
-              disabled={
-                loading ||
-                !question.trim()
-              }
-            >
-              {loading ? "..." : "➤"}
-            </button>
           </div>
 
-          <div className="input-hint">
-            📎 PDF, DOCX, TXT&nbsp;&nbsp; • &nbsp;&nbsp;
-            Enter to send&nbsp;&nbsp; • &nbsp;&nbsp;
-            Shift + Enter for a new line
+        </header>
+
+        {/* PAGE */}
+
+        <div className="page-layout">
+
+          <div className="page-main">
+
+            {activeView === "chat" &&
+              renderChat()}
+
+            {activeView === "documents" &&
+              renderDocuments()}
+
+            {activeView === "knowledge" &&
+              renderKnowledge()}
+
+            {activeView === "settings" &&
+              renderSettings()}
+
           </div>
+
+          {/* RIGHT DASHBOARD */}
+
+          <aside className="right-panel">
+
+            <div className="org-card">
+
+              <div className="org-card-icon">
+                🧠
+              </div>
+
+              <div>
+                <h3>
+                  OrgMind
+                </h3>
+
+                <p>
+                  Your organization remembers.
+                </p>
+              </div>
+
+            </div>
+
+            <div className="dashboard-title">
+              Dashboard
+            </div>
+
+            <div className="stat-grid">
+
+              <div className="stat-card">
+
+                <div className="stat-icon">
+                  📄
+                </div>
+
+                <strong>
+                  {uploadedFiles.length}
+                </strong>
+
+                <span>
+                  Uploaded Documents
+                </span>
+
+              </div>
+
+              <div className="stat-card">
+
+                <div className="stat-icon">
+                  💬
+                </div>
+
+                <strong>
+                  {chats.length}
+                </strong>
+
+                <span>
+                  Conversation Memory
+                </span>
+
+              </div>
+
+            </div>
+
+            <div className="activity-card">
+
+              <div className="activity-heading">
+                <span>
+                  ◷
+                </span>
+                Recent Activity
+              </div>
+
+              {uploadedFiles.length === 0 ? (
+
+                <div className="activity-empty">
+                  No recent activity
+                </div>
+
+              ) : (
+
+                uploadedFiles
+                  .slice(-5)
+                  .reverse()
+                  .map((file) => (
+
+                    <div
+                      className="activity-item"
+                      key={file}
+                    >
+
+                      <div className="activity-check">
+                        ✓
+                      </div>
+
+                      <div>
+                        <strong>
+                          Indexed Successfully
+                        </strong>
+
+                        <span>
+                          {file}
+                        </span>
+                      </div>
+
+                    </div>
+
+                  ))
+
+              )}
+
+            </div>
+
+            <div className="smart-card">
+
+              <div className="smart-icon">
+                ✨
+              </div>
+
+              <h3>
+                Smarter Context.
+                <br />
+                Better Decisions.
+              </h3>
+
+              <p>
+                OrgMind helps your team find
+                answers, remember what matters,
+                and move faster.
+              </p>
+
+              <div className="smart-actions">
+
+                <button
+                  onClick={() =>
+                    changeView("chat")
+                  }
+                >
+                  ⌕ Search
+                </button>
+
+                <button
+                  onClick={() =>
+                    changeView("knowledge")
+                  }
+                >
+                  🧠 Remember
+                </button>
+
+                <button
+                  onClick={() =>
+                    changeView("documents")
+                  }
+                >
+                  ⚡ Get Things Done
+                </button>
+
+              </div>
+
+            </div>
+
+          </aside>
+
         </div>
+
       </main>
+
+      {/* TOAST */}
 
       {toast && (
         <div
@@ -1034,15 +1773,18 @@ function App() {
               : "toast-success"
           }`}
         >
-          {toast.type === "error"
-            ? "❌"
-            : toast.type === "warning"
-            ? "⚠️"
-            : "✅"}
+          <span>
+            {toast.type === "error"
+              ? "❌"
+              : toast.type === "warning"
+              ? "⚠️"
+              : "✓"}
+          </span>
 
-          <span>{toast.message}</span>
+          {toast.message}
         </div>
       )}
+
     </div>
   );
 }
