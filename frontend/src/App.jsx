@@ -1,38 +1,4 @@
-<<<<<<< HEAD
 import { useEffect, useRef, useState } from "react";
-=======
-<<<<<<< HEAD
-import { useState } from "react";
-import axios from "axios";
-
-const API_URL = "http://127.0.0.1:8000";
-
-function App() {
-  const [question, setQuestion] = useState("");
-  const [answer, setAnswer] = useState("");
-  const [uploadStatus, setUploadStatus] = useState("");
-
-  const askAI = async () => {
-    if (!question.trim()) return;
-
-    try {
-      const res = await axios.post(`${API_URL}/ask`, {
-        question,
-      });
-
-      setAnswer(res.data.answer);
-    } catch (err) {
-      console.error(err);
-<<<<<<< HEAD
-      setAnswer("Error connecting to backend.");
-=======
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
-
->>>>>>> 149ef54 (Completed backend RAG pipeline)
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -40,18 +6,18 @@ import Navbar from "./components/Navbar";
 import Sidebar from "./components/Sidebar";
 import ChatBox from "./components/ChatBox";
 import ChatInput from "./components/ChatInput";
-import WelcomeScreen from "./components/WelcomeScreen";
 
 function App() {
-  // ================================
+  // -----------------------------
   // CHAT STATE
-  // ================================
+  // -----------------------------
 
   const [chats, setChats] = useState(() => {
     try {
       const saved = localStorage.getItem("orgmind-chats");
       return saved ? JSON.parse(saved) : [];
-    } catch {
+    } catch (error) {
+      console.error("Failed to load chats:", error);
       return [];
     }
   });
@@ -66,21 +32,24 @@ function App() {
 
   const bottomRef = useRef(null);
 
-  // ================================
+  // -----------------------------
   // ACTIVE CHAT
-  // ================================
+  // -----------------------------
 
   const activeChat =
     chats.find((chat) => chat.id === activeChatId) || null;
 
   const messages = activeChat?.messages || [];
 
-  // ================================
-  // SAVE CHATS
-  // ================================
+  // -----------------------------
+  // SAVE CHAT HISTORY
+  // -----------------------------
 
   useEffect(() => {
-    localStorage.setItem("orgmind-chats", JSON.stringify(chats));
+    localStorage.setItem(
+      "orgmind-chats",
+      JSON.stringify(chats)
+    );
   }, [chats]);
 
   useEffect(() => {
@@ -94,9 +63,9 @@ function App() {
     }
   }, [activeChatId]);
 
-  // ================================
+  // -----------------------------
   // AUTO SCROLL
-  // ================================
+  // -----------------------------
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({
@@ -104,52 +73,57 @@ function App() {
     });
   }, [messages, loading]);
 
-  // ================================
+  // -----------------------------
   // TIME
-  // ================================
+  // -----------------------------
 
-  const currentTime = () => {
+  const getTime = () => {
     return new Date().toLocaleTimeString([], {
       hour: "2-digit",
       minute: "2-digit",
     });
   };
 
-  // ================================
+  // -----------------------------
   // CHAT TITLE
-  // ================================
+  // -----------------------------
 
-  const createChatTitle = (text) => {
-    const clean = text.trim();
+  const getChatTitle = (text) => {
+    const cleanText = text.trim();
 
-    if (clean.length <= 32) {
-      return clean;
+    if (cleanText.length <= 30) {
+      return cleanText;
     }
 
-    return `${clean.slice(0, 32)}...`;
+    return cleanText.substring(0, 30) + "...";
   };
 
-  // ================================
-  // NEW CHAT
-  // ================================
+  // -----------------------------
+  // CREATE NEW CHAT
+  // -----------------------------
 
   const newChat = () => {
-    const chat = {
+    const newConversation = {
       id: crypto.randomUUID(),
-      title: "New conversation",
+      title: "New Chat",
       messages: [],
     };
 
-    setChats((prev) => [chat, ...prev]);
+    setChats((previousChats) => [
+      newConversation,
+      ...previousChats,
+    ]);
 
-    setActiveChatId(chat.id);
+    setActiveChatId(newConversation.id);
     setQuestion("");
     setSidebarOpen(false);
+
+    toast.success("New chat created");
   };
 
-  // ================================
+  // -----------------------------
   // SELECT CHAT
-  // ================================
+  // -----------------------------
 
   const selectChat = (chatId) => {
     setActiveChatId(chatId);
@@ -157,71 +131,79 @@ function App() {
     setSidebarOpen(false);
   };
 
-  // ================================
+  // -----------------------------
   // CLEAR CURRENT CHAT
-  // ================================
+  // -----------------------------
 
-  const clearCurrentChat = () => {
+  const clearChat = () => {
     if (!activeChatId) {
-      toast("No conversation selected.");
+      toast("No chat selected");
       return;
     }
 
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === activeChatId
-          ? {
-              ...chat,
-              title: "New conversation",
-              messages: [],
-            }
-          : chat
-      )
+    setChats((previousChats) =>
+      previousChats.map((chat) => {
+        if (chat.id !== activeChatId) {
+          return chat;
+        }
+
+        return {
+          ...chat,
+          title: "New Chat",
+          messages: [],
+        };
+      })
     );
 
     setQuestion("");
 
-    toast.success("Conversation cleared");
+    toast.success("Chat cleared");
   };
 
-  // ================================
+  // -----------------------------
   // COPY MESSAGE
-  // ================================
+  // -----------------------------
 
   const copyMessage = async (text) => {
     try {
       await navigator.clipboard.writeText(text);
       toast.success("Copied!");
-    } catch {
-      toast.error("Unable to copy message");
+    } catch (error) {
+      console.error(error);
+      toast.error("Could not copy");
     }
   };
 
-  // ================================
+  // -----------------------------
   // ADD MESSAGE
-  // ================================
+  // -----------------------------
 
-  const addMessageToChat = (chatId, message) => {
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === chatId
-          ? {
-              ...chat,
-              messages: [...chat.messages, message],
-            }
-          : chat
-      )
+  const addMessage = (chatId, message) => {
+    setChats((previousChats) =>
+      previousChats.map((chat) => {
+        if (chat.id !== chatId) {
+          return chat;
+        }
+
+        return {
+          ...chat,
+          messages: [
+            ...chat.messages,
+            message,
+          ],
+        };
+      })
     );
   };
 
-  // ================================
+  // -----------------------------
   // ASK AI
-  // ================================
+  // -----------------------------
 
-  const askAI = async (customQuestion = null) => {
+  const askAI = async (prompt = null) => {
     const text = (
-      customQuestion !== null
-        ? customQuestion
+      prompt !== null
+        ? prompt
         : question
     ).trim();
 
@@ -231,62 +213,64 @@ function App() {
 
     let chatId = activeChatId;
 
-    // Automatically create chat
-    // when user asks first question
+    // Create a chat automatically
+    // if none exists.
     if (!chatId) {
       chatId = crypto.randomUUID();
 
       const newConversation = {
         id: chatId,
-        title: createChatTitle(text),
+        title: getChatTitle(text),
         messages: [],
       };
 
-      setChats((prev) => [
+      setChats((previousChats) => [
         newConversation,
-        ...prev,
+        ...previousChats,
       ]);
 
       setActiveChatId(chatId);
     }
 
-    // ================================
+    // -----------------------------
     // USER MESSAGE
-    // ================================
+    // -----------------------------
 
     const userMessage = {
       id: crypto.randomUUID(),
       role: "user",
       content: text,
-      time: currentTime(),
+      time: getTime(),
     };
 
-    setChats((prev) =>
-      prev.map((chat) =>
-        chat.id === chatId
-          ? {
-              ...chat,
+    setChats((previousChats) =>
+      previousChats.map((chat) => {
+        if (chat.id !== chatId) {
+          return chat;
+        }
 
-              title:
-                chat.messages.length === 0
-                  ? createChatTitle(text)
-                  : chat.title,
+        return {
+          ...chat,
 
-              messages: [
-                ...chat.messages,
-                userMessage,
-              ],
-            }
-          : chat
-      )
+          title:
+            chat.messages.length === 0
+              ? getChatTitle(text)
+              : chat.title,
+
+          messages: [
+            ...chat.messages,
+            userMessage,
+          ],
+        };
+      })
     );
 
     setQuestion("");
     setLoading(true);
 
-    // ================================
-    // BACKEND REQUEST
-    // ================================
+    // -----------------------------
+    // FASTAPI REQUEST
+    // -----------------------------
 
     try {
       const response = await axios.post(
@@ -298,23 +282,26 @@ function App() {
 
       const answer =
         response?.data?.answer ||
-        "The backend returned an empty response.";
+        "I received an empty response from the backend.";
 
-      // ================================
+      // -----------------------------
       // AI MESSAGE
-      // ================================
+      // -----------------------------
 
-      const aiMessage = {
+      const assistantMessage = {
         id: crypto.randomUUID(),
         role: "assistant",
         content: answer,
-        time: currentTime(),
+        time: getTime(),
       };
 
-      addMessageToChat(chatId, aiMessage);
+      addMessage(
+        chatId,
+        assistantMessage
+      );
     } catch (error) {
       console.error(
-        "OrgMind API error:",
+        "OrgMind backend error:",
         error
       );
 
@@ -322,148 +309,31 @@ function App() {
         id: crypto.randomUUID(),
         role: "assistant",
         content:
-          "⚠️ I couldn't connect to the OrgMind backend.\n\nPlease make sure your FastAPI server is running at `http://127.0.0.1:8000`.",
-        time: currentTime(),
+          "⚠️ I couldn't connect to the OrgMind backend.\n\nPlease make sure the FastAPI server is running on `http://127.0.0.1:8000`.",
+        time: getTime(),
       };
 
-      addMessageToChat(
+      addMessage(
         chatId,
         errorMessage
       );
 
       toast.error(
-        "Unable to connect to backend"
+        "Backend connection failed"
       );
     } finally {
       setLoading(false);
-<<<<<<< HEAD
-=======
->>>>>>> a75db40 (Completed professional frontend UI)
-=======
-      setAnswer("❌ Error connecting to backend.");
     }
   };
 
-  const uploadFile = async (file) => {
-    const formData = new FormData();
-    formData.append("file", file);
-
-    try {
-      setUploadStatus("Uploading...");
-
-      const res = await axios.post(
-        `${API_URL}/upload`,
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
-
-      setUploadStatus("✅ " + res.data.message);
-    } catch (err) {
-      console.error(err);
-      setUploadStatus("❌ Upload failed");
->>>>>>> 61a7d1d (Completed backend RAG pipeline)
->>>>>>> 149ef54 (Completed backend RAG pipeline)
-    }
-  };
-
-  // ================================
+  // -----------------------------
   // RENDER
-  // ================================
+  // -----------------------------
 
   return (
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
-    <div
-      style={{
-        background: "#0f172a",
-        minHeight: "100vh",
-        color: "white",
-        padding: "40px",
-        fontFamily: "Arial",
-      }}
-    >
-      <h1>🧠 OrgMind</h1>
-      <h2>AI Organizational Memory Agent</h2>
-
-      <hr style={{ margin: "25px 0" }} />
-
-      <h3>📄 Upload Document</h3>
-
-      <input
-        type="file"
-        accept=".pdf,.doc,.docx,.txt"
-        onChange={(e) => {
-          if (e.target.files.length > 0) {
-            uploadFile(e.target.files[0]);
-          }
-        }}
-      />
-
-      <p>{uploadStatus}</p>
-
-      <hr style={{ margin: "25px 0" }} />
-
-      <h3>💬 AI Chat</h3>
-
-      <textarea
-        rows="6"
-        placeholder="Ask OrgMind anything..."
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-        style={{
-          width: "100%",
-          maxWidth: "800px",
-          background: "#1e293b",
-          color: "white",
-          border: "1px solid #475569",
-          borderRadius: "8px",
-          padding: "12px",
-          fontSize: "16px",
-        }}
-      />
-
-      <br />
-      <br />
-
-      <button
-        onClick={askAI}
-        style={{
-          background: "#2563eb",
-          color: "white",
-          border: "none",
-          borderRadius: "8px",
-          padding: "12px 24px",
-          cursor: "pointer",
-          fontSize: "16px",
-        }}
-      >
-        Ask AI
-      </button>
-
-      <h3 style={{ marginTop: "30px" }}>Response</h3>
-
-      <div
-        style={{
-          background: "#1e293b",
-          padding: "20px",
-          borderRadius: "8px",
-          minHeight: "100px",
-          maxWidth: "800px",
-          whiteSpace: "pre-wrap",
-        }}
-      >
-        {answer}
-      </div>
-=======
->>>>>>> 149ef54 (Completed backend RAG pipeline)
     <div className="app-shell">
 
-      {/* MOBILE SIDEBAR OVERLAY */}
+      {/* MOBILE OVERLAY */}
       {sidebarOpen && (
         <div
           className="sidebar-overlay"
@@ -474,7 +344,7 @@ function App() {
       )}
 
       {/* SIDEBAR */}
-      <div
+      <aside
         className={`sidebar-container ${
           sidebarOpen ? "open" : ""
         }`}
@@ -484,14 +354,14 @@ function App() {
           activeChatId={activeChatId}
           onNewChat={newChat}
           onSelectChat={selectChat}
-          onClearChat={clearCurrentChat}
+          onClearChat={clearChat}
           onClose={() =>
             setSidebarOpen(false)
           }
         />
-      </div>
+      </aside>
 
-      {/* MAIN APPLICATION */}
+      {/* MAIN */}
       <main className="main-content">
 
         {/* NAVBAR */}
@@ -501,13 +371,57 @@ function App() {
           }
         />
 
-        {/* CHAT */}
+        {/* CHAT AREA */}
         <section className="chat-area">
 
           {messages.length === 0 && !loading ? (
-            <WelcomeScreen
-              onPromptClick={askAI}
-            />
+            <div className="welcome-screen">
+
+              <div className="welcome-logo">
+                🧠
+              </div>
+
+              <h2>
+                Welcome to{" "}
+                <span>OrgMind</span>
+              </h2>
+
+              <p className="welcome-description">
+                Your AI organizational memory
+                assistant. Ask questions about
+                projects, decisions, documents,
+                processes, and organizational
+                knowledge.
+              </p>
+
+              <div className="quick-prompts">
+
+                <button
+                  onClick={() =>
+                    askAI(
+                      "What are the latest decisions made by our organization?"
+                    )
+                  }
+                >
+                  What are the latest decisions
+                  made by our organization?
+                </button>
+
+                <button
+                  onClick={() =>
+                    askAI(
+                      "Summarize our important projects and their current status."
+                    )
+                  }
+                >
+                  Summarize our important
+                  projects and their current
+                  status.
+                </button>
+
+              </div>
+
+            </div>
           ) : (
             <ChatBox
               messages={messages}
