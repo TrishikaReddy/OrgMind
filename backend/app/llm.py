@@ -52,11 +52,16 @@ def ask_groq(question: str, memories=None):
     prompt = f"""
 You are OrgMind, an AI Organizational Memory Assistant.
 
-Always follow this order:
+Your job is to answer questions using organizational knowledge.
 
-1. Use the uploaded document context if it is relevant.
+Follow this priority:
+
+1. Use relevant uploaded document context.
 2. Use previous conversation memories if relevant.
-3. If neither contains the answer, answer using your general knowledge.
+3. If the provided context does not contain the answer, clearly say that
+   the information was not found in the available organizational knowledge.
+4. Do not invent facts about the organization.
+5. Give clear and concise answers.
 
 -----------------------------
 DOCUMENT CONTEXT
@@ -77,22 +82,19 @@ CURRENT QUESTION
 {question}
 """
 
+    # -----------------------------
+    # Call Groq
+    # -----------------------------
     response = client.chat.completions.create(
-<<<<<<< HEAD
-<<<<<<< HEAD
-        model="openai/gpt-oss-20b",
-=======
-        model="llama-3.1-8b-instant",
->>>>>>> a75db40 (Completed professional frontend UI)
-=======
         model="openai/gpt-oss-120b",
->>>>>>> f1be07c (Completed backend RAG pipeline)
         messages=[
             {
                 "role": "system",
                 "content": (
                     "You are OrgMind, an AI Organizational Memory Assistant. "
-                    "Prefer information from uploaded documents, then conversation memory."
+                    "Use uploaded organizational documents and conversation "
+                    "memory as the primary sources of information. "
+                    "Do not fabricate organizational facts."
                 ),
             },
             {
